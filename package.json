@@ -1,0 +1,22 @@
+{
+  "name": "weather-app",
+  "version": "2.0.0",
+  "description": "Weather app with its own Node.js + Express backend, Open-Meteo data, AQI, radar maps, and alerts.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "weather",
+    "forecast",
+    "radar",
+    "aqi",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

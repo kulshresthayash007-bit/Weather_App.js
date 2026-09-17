@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather App</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Animated themed weather backgrounds -->
+  <div id="bg-layer" class="bg-layer"></div>
+  <div id="precip-layer" class="precip-layer"></div>
+
+  <div class="app">
+    <header>
+      <h1 class="logo">Weather<span>Now</span></h1>
+      <div class="search-wrapper">
+        <form id="search-form">
+          <div class="input-group">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="text" id="search-input" placeholder="Search city..." autocomplete="off" />
+            <button type="button" id="clear-btn" class="clear-btn hidden" aria-label="Clear search">&times;</button>
+          </div>
+          <button type="submit" id="search-btn" aria-label="Search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          </button>
+        </form>
+        <div id="suggestions" class="suggestions hidden"></div>
+      </div>
+      <div class="header-actions">
+        <button id="geo-btn" class="icon-btn" title="Use my location">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+          </svg>
+        </button>
+        <button id="unit-btn" class="icon-btn unit-toggle" title="Toggle units">&deg;C</button>
+        <div class="dropdown-wrapper">
+          <button id="menu-btn" class="icon-btn" title="Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <div id="dropdown-menu" class="dropdown-menu hidden">
+            <div class="dropdown-section">
+              <div class="dropdown-label">Recent Cities</div>
+              <div id="recent-cities-list" class="recent-cities-list"><div class="dropdown-empty">No recent searches</div></div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-section">
+              <div class="dropdown-label">Settings</div>
+              <button id="dropdown-unit-btn" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                <span>Units: <strong id="dropdown-unit-text">&deg;C</strong></span>
+              </button>
+              <button id="clear-history-btn" class="dropdown-item dropdown-item--danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span>Clear History</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="weather-container" class="hidden">
+      <!-- Alerts bar -->
+      <section id="alerts-bar" class="alerts-bar hidden"></section>
+
+      <!-- Current weather -->
+      <section class="panel current-weather">
+        <div class="location-info">
+          <h2 id="city-name"></h2>
+          <p id="date"></p>
+        </div>
+        <div class="weather-main">
+          <div id="weather-emoji" class="weather-emoji"></div>
+          <div class="temp-block">
+            <span id="temperature" class="big-temp"></span>
+            <span id="description" class="desc"></span>
+            <div class="hi-lo">
+              <span id="high-temp"></span>
+              <span class="slash">/</span>
+              <span id="low-temp"></span>
+            </div>
+          </div>
+        </div>
+        <div class="aqi-row">
+          <div class="aqi-label">Air Quality</div>
+          <div id="aqi-gauge" class="aqi-gauge"><div id="aqi-fill" class="aqi-fill"></div></div>
+          <div id="aqi-value" class="aqi-value">--</div>
+          <div id="aqi-cat" class="aqi-cat">Loading&hellip;</div>
+        </div>
+      </section>
+
+      <!-- Detailed metrics -->
+      <section class="panel metrics">
+        <div class="metric" id="m-visibility">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <div class="m-label">Visibility</div>
+          <div class="m-value" id="visibility">--</div>
+        </div>
+        <div class="metric" id="m-uv">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M6.79 6.79a9 9 0 1 0 10.42 0"/><circle cx="12" cy="12" r="2"/></svg>
+          <div class="m-label">UV Index</div>
+          <div class="m-value" id="uv-index">--</div>
+          <div class="m-sub" id="uv-cat"></div>
+        </div>
+        <div class="metric" id="m-humidity">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+          <div class="m-label">Humidity</div>
+          <div class="m-value" id="humidity">--</div>
+        </div>
+        <div class="metric" id="m-wind">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+          <div class="m-label">Wind</div>
+          <div class="m-value" id="wind">--</div>
+        </div>
+        <div class="metric" id="m-pressure">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <div class="m-label">Pressure</div>
+          <div class="m-value" id="pressure">--</div>
+        </div>
+        <div class="metric" id="m-clouds">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg>
+          <div class="m-label">Cloud Cover</div>
+          <div class="m-value" id="clouds">--</div>
+        </div>
+        <div class="metric" id="m-precip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16v3m4-6v6m4-9v9m4-5v5"/><path d="M20 6.5a2.5 2.5 0 0 0-2.5-2.5C16 4 15 5 13.5 5H8a4 4 0 0 0 0 8h9a3.5 3.5 0 0 0 3.5-3.5z"/></svg>
+          <div class="m-label">Precipitation</div>
+          <div class="m-value" id="precip">--</div>
+        </div>
+        <div class="metric" id="m-feels">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+          <div class="m-label">Feels Like</div>
+          <div class="m-value" id="feels-like">--</div>
+        </div>
+        <div class="metric" id="m-sunrise">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/></svg>
+          <div class="m-label">Sunrise</div>
+          <div class="m-value" id="sunrise">--</div>
+        </div>
+        <div class="metric" id="m-sunset">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/></svg>
+          <div class="m-label">Sunset</div>
+          <div class="m-value" id="sunset">--</div>
+        </div>
+      </section>
+
+      <!-- Hourly forecast -->
+      <section class="panel">
+        <h3>Hourly Forecast</h3>
+        <div id="hourly" class="hourly-scroll"></div>
+      </section>
+
+      <!-- 7-day outlook -->
+      <section class="panel">
+        <h3>7-Day Outlook</h3>
+        <div id="forecast" class="forecast-list"></div>
+      </section>
+
+      <!-- Radar map -->
+      <section class="panel radar-panel">
+        <div class="radar-header">
+          <h3>Interactive Radar</h3>
+          <button id="radar-toggle" class="radar-toggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Show Radar
+          </button>
+        </div>
+        <div id="map" class="map hidden"></div>
+      </section>
+    </main>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Fetching weather data...</p>
+    </div>
+
+    <div id="error" class="error hidden">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p id="error-message"></p>
+      <button id="retry-btn">Try Again</button>
+    </div>
+
+    <div id="initial-prompt" class="initial-prompt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg>
+      <p>Search for a city or use your location to see the weather</p>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
