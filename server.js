@@ -67,6 +67,9 @@ function fetchJSON(url) {
 // ─── Static files ────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Serve Vercel Speed Insights script
+app.use('/_vercel/speed-insights', express.static(path.join(__dirname, 'node_modules/@vercel/speed-insights/dist')));
+
 // ─── Current weather + hourly + 7-day forecast ──────────────────────────────
 // Query: /api/weather?lat=..&lon=..&units=metric|imperial
 app.get('/api/weather', validateLatLon, async (req, res) => {
